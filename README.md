@@ -14,10 +14,10 @@ This tool is currently focused on building the **Steering Configuration** mechan
 ## Current State (Textual TUI In Progress)
 *   **Model Loading:** Specify any Hugging Face model via command-line argument (`--model_name` or `--model-name`).
 *   **Modular Core Logic:** The core functionalities have been refactored into separate modules:
-    *   `model_utils.py`: Handles loading Hugging Face models and tokenizers. It also builds an internal tree representation (`ModuleNode`) of the model's structure, which will be used by the future TUI.
-    *   `rules.py`: Defines the `Rule` data structure and contains the logic for compiling a list of defined rules into a final steering configuration. It supports instance-specific, module type-specific, and path pattern (glob-style) rules with defined precedence (Instance > Path Pattern > Module Type).
-    *   `config_io.py`: Manages saving the generated steering configuration to a JSON file.
-*   **Textual TUI Development:** The main script (`main.py`) now launches an interactive Terminal User Interface (TUI) built with the `Textual` library (see `tui.py` and `tui.css`). This replaces the previous placeholder TUI.
+    *   `lmsteer/app/model_utils.py`: Handles loading Hugging Face models and tokenizers. It also builds an internal tree representation (`ModuleNode`) of the model's structure.
+    *   `lmsteer/app/rules.py`: Defines the `Rule` data structure and contains the logic for compiling a list of defined rules into a final steering configuration. It supports instance-specific, module type-specific, and path pattern (glob-style) rules with defined precedence (Instance > Path Pattern > Module Type).
+    *   `lmsteer/app/config_io.py`: Manages saving the generated steering configuration to a JSON file.
+*   **Textual TUI Development:** The main script (`main.py`) now launches an interactive Terminal User Interface (TUI) built with the `Textual` library (see `lmsteer/tui/app.py` and `lmsteer/tui/tui.css`). This replaces the previous placeholder TUI.
     *   The TUI loads the specified Hugging Face model.
     *   It builds and displays an interactive tree representation of the model's module structure.
     *   Users can navigate this tree (expand/collapse nodes) and view details (path, type, etc.) of the selected module.
@@ -26,10 +26,10 @@ This tool is currently focused on building the **Steering Configuration** mechan
 ## How to Use (Current Version)
 
 ### 1. Setup
-Ensure you have the `lmsteer` directory with the Python modules (`main.py`, `model_utils.py`, `rules.py`, `config_io.py`) and `requirements.txt`.
+Ensure you have the `lmsteer` project directory. This project uses `uv` as its package manager and `pyproject.toml` for dependency management. Key Python modules are organized into `lmsteer/app/` (for core logic like `model_utils.py`, `rules.py`, `config_io.py`) and `lmsteer/tui/` (for UI components like `app.py`).
 Install the necessary dependencies:
 ```bash
-pip install -r requirements.txt
+uv pip sync
 ```
 
 ### 2. Running the Tool
@@ -53,7 +53,7 @@ When you run the script:
 ## Roadmap & Future Enhancements
 
 ### Immediate Next Steps
-*   [ ] **Complete Textual TUI for Rule Management:** The initial Textual TUI (`tui.py`) allows for model loading and module tree navigation. The next critical step is to implement full rule management capabilities:
+*   [ ] **Complete Textual TUI for Rule Management:** The initial Textual TUI (`lmsteer/tui/app.py`) allows for model loading and module tree navigation. The next critical step is to implement full rule management capabilities:
     *   Interactively define steering rules for selected modules (e.g., capture, skip, modify activations).
     *   Display a list of currently defined rules.
     *   Allow users to edit or delete existing rules.
@@ -79,8 +79,10 @@ When you run the script:
 *   Initial CLI argument parsing for model name (supporting `--model_name` and `--model-name`).
 *   Hugging Face model and tokenizer loading.
 *   Core logic for rule definition (instance, type, path pattern) and compilation with precedence.
-*   **Refactoring:** Separated core logic into `model_utils.py`, `rules.py`, and `config_io.py`.
-*   Began implementation of the Textual TUI (`tui.py`, `tui.css`), replacing the placeholder TUI in `main.py`. The TUI now handles model loading, module tree display/navigation, and shows module details.
+*   **Initial Refactoring:** Separated core logic into standalone files (`model_utils.py`, `rules.py`, `config_io.py`).
+*   **Project Structure Refactor:** Reorganized the project into `lmsteer/app` (for core logic) and `lmsteer/tui` (for UI components) modules. `main.py` is now the only Python script at the root. `tui.css` moved to `lmsteer/tui/tui.css`. (Commit `b2d1e8c`)
+*   **TUI Enhancements:** Implemented details pane for selected module, Enter/Esc key navigation in the tree, and fixed `RadioSet` focus issue. (Commit `517ac7b`)
+*   Began implementation of the Textual TUI (`lmsteer/tui/app.py`, `lmsteer/tui/tui.css`), replacing the placeholder TUI in `main.py`. The TUI now handles model loading, module tree display/navigation, and shows module details.
 *   Set up Git repository and pushed initial refactored code to GitHub.
 
 ## Dependencies
@@ -90,6 +92,24 @@ When you run the script:
 *   `textual` (Planned for the new TUI)
 *   `uuid` (standard library, used for rule IDs)
 *   `fnmatch` (standard library, for path pattern matching)
+
+## Notes for Developers
+
+*   **Package Manager:** This project uses `uv` for dependency management. Use `uv pip sync` to install dependencies based on `uv.lock` and `pyproject.toml`.
+*   **Project Structure:**
+    *   Core application logic resides in `lmsteer/app/` (e.g., `model_utils.py`, `rules.py`, `config_io.py`).
+    *   Textual TUI components are in `lmsteer/tui/` (e.g., `app.py`, `tui.css`).
+    *   `main.py` at the project root is the main entry point.
+*   **TUI Development Status:**
+    *   The "Define Steering Rule..." button in the TUI is currently a placeholder and does not yet open a dialog or implement rule definition logic.
+    *   The `RadioSet` for selecting module status (Observe, Skip, Steer) is present in the UI, but its state is not yet connected to the underlying module configuration or `rules.py`.
+    *   Visual feedback for module status (e.g., `[C]`, `[S]`, `[I]` prefixes in the `CustomTree`) is not yet implemented.
+*   **Next Steps for TUI:**
+    *   Implement the modal/dialog for defining steering rules.
+    *   Connect the `RadioSet` and rule definition dialog to `lmsteer/app/rules.py` to create and manage `Rule` objects.
+    *   Implement logic to save these rules using `lmsteer/app/config_io.py`.
+    *   Calculate and display the "Effective Status" of modules based on the defined rules and their precedence.
+    *   Add visual prefixes to the module tree.
 
 ---
 *This README will be updated as the project progresses.*
