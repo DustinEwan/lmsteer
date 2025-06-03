@@ -1,11 +1,11 @@
 import argparse
 from rich.console import Console
 
-from model_utils import load_model_and_tokenizer, build_module_tree
+from lmsteer.app.model_utils import load_model_and_tokenizer, build_module_tree
 # from rules import Rule, compile_rules_to_steering_config # TUI will handle rules
 # from config_io import save_steering_config # TUI will handle saving
 
-from tui import LMSteerApp
+from lmsteer.tui.app import LMSteerApp
 
 
 def main():

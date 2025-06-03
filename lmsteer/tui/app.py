@@ -15,7 +15,7 @@ from textual.binding import (
 )  # Correct: Binding from textual.binding (Forcing update)
 from textual.events import Key
 
-from model_utils import ModuleNode
+from lmsteer.app.model_utils import ModuleNode
 # from rules import Rule
 
 
