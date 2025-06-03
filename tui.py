@@ -12,6 +12,10 @@ class LMSteerApp(App):
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=True),
+        Binding("k", "cursor_up", "Cursor Up", show=False, priority=True),
+        Binding("j", "cursor_down", "Cursor Down", show=False, priority=True),
+        Binding("h", "cursor_left", "Collapse / Previous", show=False, priority=True),
+        Binding("l", "cursor_right", "Expand / Next", show=False, priority=True),
     ]
 
     CSS_PATH = "tui.css"
@@ -53,26 +57,31 @@ class LMSteerApp(App):
         self._add_nodes_to_tree(module_tree_widget.root, self.model_root)
         module_tree_widget.focus()
 
-    def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
-        """Called when a node in the Tree is selected."""
-        selected_node_data = event.node.data
+    def _update_module_details(self, module_node: ModuleNode | None) -> None:
+        """Updates the context pane with details of the given module_node."""
         context_title_widget = self.query_one("#context_pane_title", Static)
         module_info_widget = self.query_one("#module_info_static", Static)
 
-        if selected_node_data and isinstance(selected_node_data, ModuleNode):
-            module_node: ModuleNode = selected_node_data
+        if module_node and isinstance(module_node, ModuleNode):
             context_title_widget.update(f"Details for: [bold]{module_node.name}[/bold] ([italic]{module_node.module_type}[/italic])")
             
             details = (
-                f"[bold]Full Path:[/bold] {module_node.get_full_path() or '(root)'}\n"
-                f"[bold]Module Type:[/bold] {module_node.module_type}\n"
-                f"[bold]Is Leaf:[/bold] {module_node.is_leaf}\n"
-                f"[bold]Children Count:[/bold] {len(module_node.children)}\n"
+                f"[bold]Full Path:[/bold] {module_node.get_full_path() or '(root)'}\\\\n"
+                f"[bold]Module Type:[/bold] {module_node.module_type}\\\\n"
+                f"[bold]Is Leaf:[/bold] {module_node.is_leaf}\\\\n"
+                f"[bold]Children Count:[/bold] {len(module_node.children)}\\\\n"
             )
             module_info_widget.update(details)
         else:
             context_title_widget.update("Context / Rule Definition")
-            module_info_widget.update("Select a module to see details.")
+            module_info_widget.update("Highlight a module in the tree to see details.")
+
+    def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
+        """Called when a node in the Tree is highlighted."""
+        # event.node can be None if the tree is empty or loses focus
+        highlighted_node_data = event.node.data if event.node else None
+        self._update_module_details(highlighted_node_data)
+
 
     def action_quit(self) -> None:
         self.exit()
