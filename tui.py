@@ -10,9 +10,45 @@ from textual.widgets.tree import TreeNode  # Correct: TreeNode from textual.widg
 from textual.binding import (
     Binding,
 )  # Correct: Binding from textual.binding (Forcing update)
+from textual.events import Key
 
 from model_utils import ModuleNode
 # from rules import Rule
+
+
+class CustomTree(Tree):
+    def on_key(self, event: Key) -> None:
+        prevent_default = False
+        if event.key == "k":
+            self.action_cursor_up()
+            prevent_default = True
+        elif event.key == "j":
+            self.action_cursor_down()
+            prevent_default = True
+        elif event.key == "h":
+            if self.cursor_node and self.cursor_node.is_expanded:
+                self.action_toggle_node()
+            prevent_default = True
+        elif event.key == "l":
+            if (
+                self.cursor_node
+                and not self.cursor_node.is_expanded
+                and self.cursor_node.allow_expand
+            ):
+                self.action_toggle_node()
+            prevent_default = True
+
+        if prevent_default:
+            event.stop()
+
+    def action_select_cursor(self) -> None:
+        """
+        Called when the cursor is selected (e.g. by pressing Enter).
+        We override this to prevent toggling the node, but still allow
+        the selection event to propagate for updating details.
+        """
+        if self.cursor_node is not None:
+            self.post_message(self.NodeSelected(self.cursor_node))
 
 
 class LMSteerApp(App):
@@ -40,7 +76,7 @@ class LMSteerApp(App):
 
         with Horizontal(id="main_content_area"):
             tree_root_label = f"{self.model_root.name} ({self.model_root.module_type})"
-            yield Tree(tree_root_label, data=self.model_root, id="module_tree")
+            yield CustomTree(tree_root_label, data=self.model_root, id="module_tree")
 
             with Vertical(id="context_pane"):
                 yield Static(
@@ -105,7 +141,7 @@ class LMSteerApp(App):
         """Collapses the current tree node if it is expanded."""
         tree = self.query_one(Tree)
         if tree.cursor_node and tree.cursor_node.is_expanded:
-            tree.action_collapse_node()
+            tree.action_toggle_node()
 
     def action_expand_node(self) -> None:
         """Expands the current tree node if it is collapsed and has children."""
@@ -115,7 +151,7 @@ class LMSteerApp(App):
             and not tree.cursor_node.is_expanded
             and tree.cursor_node.allow_expand
         ):
-            tree.action_expand_node()
+            tree.action_toggle_node()
 
     def action_quit(self) -> None:
         self.exit()
