@@ -1,39 +1,35 @@
 from textual.app import App, ComposeResult
-from textual.containers import Horizontal, Vertical # Will use these more later
-from textual.widgets import Header, Footer, Static, Tree
-from textual.widgets.tree import TreeNode
-from textual.binding import Binding
+from textual.containers import Horizontal, Vertical
+from textual.widgets import Header, Footer, Static, Tree # Correct: Tree from textual.widgets
+from textual.widgets.tree import TreeNode # Correct: TreeNode from textual.widgets.tree
+from textual.binding import Binding # Correct: Binding from textual.binding (Forcing update)
 
-from model_utils import ModuleNode # We'll need this to type hint
-# from rules import Rule # Will need this when we handle rules
+from model_utils import ModuleNode
+# from rules import Rule
 
 class LMSteerApp(App):
     """A Textual app to steer language models."""
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=True),
-        # Add more bindings here as we develop (e.g., for defining rules)
     ]
 
-    CSS_PATH = "tui.css" # We can add a CSS file later for styling
+    CSS_PATH = "tui.css"
 
     def __init__(self, model_root: ModuleNode, model_name: str, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.model_root = model_root
         self.model_name = model_name
-        self.defined_rules = [] # Initialize list to store Rule objects
-        self.title = f"LMSteer - {self.model_name}" # Set dynamic window title
+        self.defined_rules = []
+        self.title = f"LMSteer - {self.model_name}"
 
     def compose(self) -> ComposeResult:
-        """Create child widgets for the app."""
-        yield Header(show_clock=False) # Clock not essential, keep it clean
+        yield Header(show_clock=False)
         
         with Horizontal(id="main_content_area"):
-            # Module Tree Pane
             tree_root_label = f"{self.model_root.name} ({self.model_root.module_type})"
             yield Tree(tree_root_label, data=self.model_root, id="module_tree")
             
-            # Context Pane (placeholder for now)
             with Vertical(id="context_pane"):
                 yield Static("Context / Rule Definition", classes="pane_title", id="context_pane_title") 
                 yield Static("Select a module in the tree to see details or define rules.", id="module_info_static")
@@ -41,17 +37,9 @@ class LMSteerApp(App):
         yield Footer()
 
     def _add_nodes_to_tree(self, textual_tree_node: TreeNode, model_node: ModuleNode) -> None:
-        """Recursively adds nodes from our ModuleNode structure to the Textual Tree.
-
-        Args:
-            textual_tree_node: The parent TreeNode in the Textual Tree widget.
-            model_node: The corresponding ModuleNode from our model structure whose children are to be added.
-        """
-        textual_tree_node.expand() # Expand parent by default
+        textual_tree_node.expand() 
         for child_model_node in model_node.children:
             label = f"{child_model_node.name}  [dim]({child_model_node.module_type})[/dim]"
-            # Store the actual ModuleNode object in the data attribute of the tree node
-            # Mark as not expandable if it's a leaf in our model structure
             new_textual_node = textual_tree_node.add(
                 label,
                 data=child_model_node,
@@ -61,24 +49,39 @@ class LMSteerApp(App):
                 self._add_nodes_to_tree(new_textual_node, child_model_node)
 
     def on_mount(self) -> None:
-        """Called when the app is mounted."""
-        module_tree_widget = self.query_one(Tree)
-        # The root of the Textual tree already represents self.model_root (set in compose)
-        # So we populate its children.
+        module_tree_widget = self.query_one("#module_tree", Tree)
         self._add_nodes_to_tree(module_tree_widget.root, self.model_root)
         module_tree_widget.focus()
 
+    def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
+        """Called when a node in the Tree is selected."""
+        selected_node_data = event.node.data
+        context_title_widget = self.query_one("#context_pane_title", Static)
+        module_info_widget = self.query_one("#module_info_static", Static)
+
+        if selected_node_data and isinstance(selected_node_data, ModuleNode):
+            module_node: ModuleNode = selected_node_data
+            context_title_widget.update(f"Details for: [bold]{module_node.name}[/bold] ([italic]{module_node.module_type}[/italic])")
+            
+            details = (
+                f"[bold]Full Path:[/bold] {module_node.get_full_path() or '(root)'}\n"
+                f"[bold]Module Type:[/bold] {module_node.module_type}\n"
+                f"[bold]Is Leaf:[/bold] {module_node.is_leaf}\n"
+                f"[bold]Children Count:[/bold] {len(module_node.children)}\n"
+            )
+            module_info_widget.update(details)
+        else:
+            context_title_widget.update("Context / Rule Definition")
+            module_info_widget.update("Select a module to see details.")
+
     def action_quit(self) -> None:
-        """An action to quit the application."""
         self.exit()
 
 if __name__ == '__main__':
-    # This is for testing the TUI directly if needed
     class DummyModuleNode(ModuleNode):
         def __init__(self, name, module_type, children=None, module=None, is_leaf=False, full_path=""):
             super().__init__(name, module_type, children if children is not None else [], module, is_leaf, full_path)
 
-    # Create a simple dummy tree for testing
     dummy_transformer = DummyModuleNode(name="transformer", module_type="Block", full_path="transformer", children=[
         DummyModuleNode(name="h", module_type="ModuleList", full_path="transformer.h", children=[
             DummyModuleNode(name="0", module_type="Layer", full_path="transformer.h.0", children=[

@@ -1,7 +1,7 @@
 /* lmsteer/tui.css */
 
 Screen {
-    /* overflow: hidden; */ /* Can help prevent unwanted scrollbars sometimes */
+    /* overflow: hidden; */ 
 }
 
 #main_content_area {
@@ -9,21 +9,18 @@ Screen {
     height: 1fr; /* Fill available vertical space */
 }
 
-#module_tree_pane {
-    width: 40%;
-    height: 100%;
-    border-right: solid $primary-background-lighten-2;
-    padding: 1;
-    overflow-y: auto;
-}
+/* #module_tree_pane style removed as it was unused */
 
 #module_tree {
-    width: 100%;
-    height: 100%;
+    width: 40%; /* Tree takes 40% of the horizontal space */
+    height: 100%; /* Tree takes full height of its container */
+    border-right: solid $primary-background-lighten-2;
+    padding-right: 1; /* Add some padding so content isn't against the border */
+    overflow-y: auto; /* Allow vertical scrolling for the tree */
 }
 
 #context_pane {
-    width: 60%;
+    width: 60%; /* Context pane takes the remaining 60% */
     height: 100%;
     padding: 1;
     overflow-y: auto;
@@ -35,13 +32,13 @@ Screen {
     text-style: bold;
     text-align: center;
     padding: 0 0 1 0;
-    /* background: $primary-background-lighten-1; */ /* Optional background for title */
+    /* background: $primary-background-lighten-1; */
 }
 
 /* Styling for the Tree widget itself if needed */
-Tree {
+/* Tree { */
     /* background: $panel; */ /* Example: give tree a background */
-}
+/* } */
 
 /* Styling for the selected tree node (can be more specific) */
 Tree > .tree--cursor {
