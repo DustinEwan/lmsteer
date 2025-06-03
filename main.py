@@ -1,26 +1,35 @@
 import argparse
 from rich.console import Console
 
-from model_utils import load_model_and_tokenizer, build_module_tree, ModuleNode
+from model_utils import load_model_and_tokenizer, build_module_tree
 # from rules import Rule, compile_rules_to_steering_config # TUI will handle rules
 # from config_io import save_steering_config # TUI will handle saving
 
 from tui import LMSteerApp
 
+
 def main():
-    parser = argparse.ArgumentParser(description="LMSteer: A guided framework for steering language models.")
-    parser.add_argument("--model_name", "--model-name", dest="model_name_arg", type=str, required=True, 
-                        help="Name of the Hugging Face model to steer (e.g., 'openai-community/gpt2', 'bert-base-uncased').")
+    parser = argparse.ArgumentParser(
+        description="LMSteer: A guided framework for steering language models."
+    )
+    parser.add_argument(
+        "--model_name",
+        "--model-name",
+        dest="model_name_arg",
+        type=str,
+        required=True,
+        help="Name of the Hugging Face model to steer (e.g., 'openai-community/gpt2', 'bert-base-uncased').",
+    )
     args = parser.parse_args()
 
-    console = Console() # Still used by load_model_and_tokenizer
+    console = Console()  # Still used by load_model_and_tokenizer
     model, tokenizer = load_model_and_tokenizer(args.model_name_arg, console)
 
     if model and tokenizer:
         console.print("Building module tree for the model...")
         model_root_node = build_module_tree(model)
         console.print("Module tree built. Launching TUI...")
-        
+
         app = LMSteerApp(model_root=model_root_node, model_name=args.model_name_arg)
         app.run()
 
@@ -48,6 +57,7 @@ def main():
 
     else:
         console.print("[bold red]Exiting due to model loading failure.[/bold red]")
+
 
 if __name__ == "__main__":
     main()
