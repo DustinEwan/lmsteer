@@ -5,6 +5,9 @@ from textual.widgets import (
     Footer,
     Static,
     Tree,
+    RadioSet,
+    RadioButton,
+    Button,
 )  # Correct: Tree from textual.widgets
 from textual.widgets.tree import TreeNode  # Correct: TreeNode from textual.widgets.tree
 from textual.binding import (
@@ -42,13 +45,18 @@ class CustomTree(Tree):
             event.stop()
 
     def action_select_cursor(self) -> None:
-        """
-        Called when the cursor is selected (e.g. by pressing Enter).
+        """Called when the cursor is selected (e.g. by pressing Enter).
         We override this to prevent toggling the node, but still allow
         the selection event to propagate for updating details.
         """
         if self.cursor_node is not None:
-            self.post_message(self.NodeSelected(self.cursor_node))
+            self.post_message(NodeExplicitlySelected(self.cursor_node))
+
+
+class NodeExplicitlySelected(Tree.NodeSelected):
+    """Posted when a node is explicitly selected (e.g., by Enter key)."""
+
+    pass
 
 
 class LMSteerApp(App):
@@ -60,6 +68,7 @@ class LMSteerApp(App):
         Binding("j,down", "cursor_down", "Cursor Down", show=False, priority=True),
         Binding("h,left", "collapse_node", "Collapse Node", show=False, priority=True),
         Binding("l,right", "expand_node", "Expand Node", show=False, priority=True),
+        Binding("escape", "focus_tree", "Focus Tree", show=False, priority=True),
     ]
 
     CSS_PATH = "tui.css"
@@ -88,6 +97,26 @@ class LMSteerApp(App):
                     "Select a module in the tree to see details or define rules.",
                     id="module_info_static",
                 )
+                yield RadioSet(
+                    RadioButton(
+                        "Capture Activations for this module", id="radio_capture_module"
+                    ),
+                    RadioButton(
+                        "Skip Activations for this module", id="radio_skip_module"
+                    ),
+                    RadioButton(
+                        "Default / Inherit", id="radio_default_module", value=True
+                    ),  # Default selection
+                    id="module_action_radioset",
+                )
+                yield Static(
+                    "Effective Status: (details pending)", id="effective_status_static"
+                )
+                yield Button(
+                    "Define Steering Rule...",
+                    variant="primary",
+                    id="define_rule_button",
+                )
 
         yield Footer()
 
@@ -115,6 +144,16 @@ class LMSteerApp(App):
         context_title_widget = self.query_one("#context_pane_title", Static)
         module_info_widget = self.query_one("#module_info_static", Static)
 
+        # Get references to new UI elements
+        radio_set = self.query_one("#module_action_radioset", RadioSet)
+        radio_capture = self.query_one("#radio_capture_module", RadioButton)
+        radio_skip = self.query_one("#radio_skip_module", RadioButton)
+        radio_default = self.query_one("#radio_default_module", RadioButton)
+        effective_status_widget = self.query_one("#effective_status_static", Static)
+        define_rule_button = self.query_one(
+            "#define_rule_button", Button
+        )  # Though its state isn't changed here
+
         if module_node and isinstance(module_node, ModuleNode):
             context_title_widget.update(
                 f"Details for: [bold]{module_node.name}[/bold] ([italic]{module_node.module_type}[/italic])"
@@ -127,15 +166,64 @@ class LMSteerApp(App):
                 f"[bold]Children Count:[/bold] {len(module_node.children)}\n"
             )
             module_info_widget.update(details)
-        else:
+
+            # Update and enable UI elements for module-specific actions
+            radio_capture.label = (
+                f"Capture Activations for this module ({module_node.name})"
+            )
+            radio_skip.label = f"Skip Activations for this module ({module_node.name})"
+
+            radio_set.disabled = False
+
+            # TODO: Set radio_set.pressed_button based on actual module config.
+            # For now, if a module is selected, we might want to ensure "Default/Inherit" is
+            # initially selected until we load its specific state.
+            # Or, we let it retain the last state. For now, let's explicitly set to default.
+            # This will be replaced by loading actual config.
+            radio_default.value = True
+
+            effective_status_widget.update(
+                f"Effective Status: (Config for {module_node.name} pending)"
+            )
+
+        else:  # No module selected
             context_title_widget.update("Context / Rule Definition")
-            module_info_widget.update("Highlight a module in the tree to see details.")
+            module_info_widget.update(
+                "Highlight a module in the tree to see details and set its capture status. "
+                "Use 'Define Steering Rule...' to create or manage broader rules."
+            )
+
+            # Reset radio button labels to generic, disable RadioSet for module-specific actions
+            radio_capture.label = "Capture Activations for this module"
+            radio_skip.label = "Skip Activations for this module"
+
+            radio_default.value = True
+            radio_set.disabled = True
+
+            # define_rule_button remains enabled.
+            define_rule_button.disabled = False
+
+            effective_status_widget.update(
+                "Effective Status: No module selected. Select a module or define a global rule."
+            )
 
     def on_tree_node_highlighted(self, event: Tree.NodeHighlighted) -> None:
         """Called when a node in the Tree is highlighted."""
         # event.node can be None if the tree is empty or loses focus
         highlighted_node_data = event.node.data if event.node else None
         self._update_module_details(highlighted_node_data)
+
+    def on_node_explicitly_selected(self, event: NodeExplicitlySelected) -> None:
+        """Called when a node in the Tree is explicitly selected (e.g., by Enter)."""
+        # _update_module_details is typically called by on_tree_node_highlighted.
+        # NodeSelected (and thus NodeExplicitlySelected) usually follows a highlight.
+
+        radio_set = self.query_one("#module_action_radioset", RadioSet)
+        # Only focus if a module is actually selected (event.node.data exists)
+        # and the radio_set is enabled (which _update_module_details should have set).
+        if event.node and event.node.data and not radio_set.disabled:
+            radio_set.focus()
+        event.stop()  # Prevent any default Tree.NodeSelected behavior if not desired
 
     def action_collapse_node(self) -> None:
         """Collapses the current tree node if it is expanded."""
@@ -152,6 +240,11 @@ class LMSteerApp(App):
             and tree.cursor_node.allow_expand
         ):
             tree.action_toggle_node()
+
+    def action_focus_tree(self) -> None:
+        """Shifts focus to the module tree."""
+        tree = self.query_one("#module_tree", CustomTree)
+        tree.focus()
 
     def action_quit(self) -> None:
         self.exit()
