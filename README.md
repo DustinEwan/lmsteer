@@ -11,16 +11,17 @@ The core idea is to identify specific modules within a Hugging Face transformer 
 
 This tool is currently focused on building the **Steering Configuration** mechanism.
 
-## Current State (Post-Refactor, Pre-Textual TUI)
+## Current State (Textual TUI In Progress)
 *   **Model Loading:** Specify any Hugging Face model via command-line argument (`--model_name` or `--model-name`).
 *   **Modular Core Logic:** The core functionalities have been refactored into separate modules:
     *   `model_utils.py`: Handles loading Hugging Face models and tokenizers. It also builds an internal tree representation (`ModuleNode`) of the model's structure, which will be used by the future TUI.
     *   `rules.py`: Defines the `Rule` data structure and contains the logic for compiling a list of defined rules into a final steering configuration. It supports instance-specific, module type-specific, and path pattern (glob-style) rules with defined precedence (Instance > Path Pattern > Module Type).
     *   `config_io.py`: Manages saving the generated steering configuration to a JSON file.
-*   **Placeholder TUI & Rule Generation:** The main script (`main.py`) currently uses a placeholder function (`collect_rules_via_placeholder_tui`) instead of a fully interactive TUI. When run, this placeholder:
-    *   Loads the specified model and builds its internal module tree.
-    *   Generates a small, predefined set of sample steering rules (e.g., an instance capture, a path pattern capture, a type skip) for demonstration and to allow testing of the downstream compilation and saving logic.
-*   **Configuration Output:** The steering configuration, derived from the (currently sample) rules, is compiled to determine actions for all leaf modules. The resulting configuration (showing only modules to be captured, along with their type and the source rule details) is printed to the console and saved as a JSON file (e.g., `openai-community_gpt2_steer_config.json`).
+*   **Textual TUI Development:** The main script (`main.py`) now launches an interactive Terminal User Interface (TUI) built with the `Textual` library (see `tui.py` and `tui.css`). This replaces the previous placeholder TUI.
+    *   The TUI loads the specified Hugging Face model.
+    *   It builds and displays an interactive tree representation of the model's module structure.
+    *   Users can navigate this tree (expand/collapse nodes) and view details (path, type, etc.) of the selected module.
+*   **Rule Definition & Configuration (Future TUI Work):** The functionality for defining steering rules, compiling them into a steering configuration, and saving that configuration is planned for future TUI development and is not yet implemented in the current Textual TUI.
 
 ## How to Use (Current Version)
 
@@ -40,21 +41,24 @@ python /workspace/lmsteer/main.py --model-name <your_model_name>
 ```
 Replace `<your_model_name>` with a model identifier from Hugging Face Hub (e.g., `distilbert-base-uncased`, `gpt2`, `facebook/opt-125m`).
 
-### 3. Current Behavior (Placeholder TUI)
+### 3. Current Behavior (Textual TUI)
 When you run the script:
-*   The specified model will be loaded.
-*   A message will indicate that the TUI is a placeholder and the next step is to implement it using `Textual`.
-*   A few sample steering rules will be automatically generated and displayed in the console.
-*   These rules will be compiled, and the resulting steering configuration (showing which leaf modules would be captured) will be printed to the console.
-*   The configuration will be saved to a JSON file in the `/workspace/lmsteer/` directory (e.g., `openai-community_gpt2_steer_config.json`).
+*   The specified Hugging Face model will be loaded.
+*   The Textual TUI will launch.
+*   You will see an interactive tree view of the model's module structure.
+*   You can navigate the tree using arrow keys (or 'j'/'k' for up/down).
+*   Highlighting a module will display its details (path, type, etc.) in the right-hand pane.
+*   Rule definition and configuration saving are not yet implemented in the TUI.
 
 ## Roadmap & Future Enhancements
 
 ### Immediate Next Steps
-*   [ ] **Implement Interactive TUI with `Textual`:** Develop a new Terminal User Interface using the `Textual` library. This TUI will allow users to:
-    *   Navigate the model's module structure (using the tree built by `model_utils.py`).
-    *   Interactively define, view, and potentially manage steering rules.
-    *   This will replace the current `collect_rules_via_placeholder_tui` function in `main.py`.
+*   [ ] **Complete Textual TUI for Rule Management:** The initial Textual TUI (`tui.py`) allows for model loading and module tree navigation. The next critical step is to implement full rule management capabilities:
+    *   Interactively define steering rules for selected modules (e.g., capture, skip, modify activations).
+    *   Display a list of currently defined rules.
+    *   Allow users to edit or delete existing rules.
+    *   Integrate logic to compile the defined rules into a steering configuration (using `rules.py`).
+    *   Implement functionality to save the generated steering configuration to a JSON file (using `config_io.py`).
 
 ### Core Steering Functionality (Post-TUI)
 *   [ ] **Forward Hooks for Observation:** Based on the generated steering configuration, register forward hooks to actually capture activations from the targeted modules during an "observation stage" (e.g., when processing a sample dataset).
@@ -75,9 +79,8 @@ When you run the script:
 *   Initial CLI argument parsing for model name (supporting `--model_name` and `--model-name`).
 *   Hugging Face model and tokenizer loading.
 *   Core logic for rule definition (instance, type, path pattern) and compilation with precedence.
-*   Saving the compiled steering configuration to a JSON file.
 *   **Refactoring:** Separated core logic into `model_utils.py`, `rules.py`, and `config_io.py`.
-*   Replaced the initial `rich`-based TUI with a placeholder in `main.py` in preparation for `Textual`.
+*   Began implementation of the Textual TUI (`tui.py`, `tui.css`), replacing the placeholder TUI in `main.py`. The TUI now handles model loading, module tree display/navigation, and shows module details.
 *   Set up Git repository and pushed initial refactored code to GitHub.
 
 ## Dependencies

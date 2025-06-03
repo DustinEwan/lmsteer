@@ -12,10 +12,10 @@ class LMSteerApp(App):
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=True),
-        Binding("k", "cursor_up", "Cursor Up", show=False, priority=True),
-        Binding("j", "cursor_down", "Cursor Down", show=False, priority=True),
-        Binding("h", "cursor_left", "Collapse / Previous", show=False, priority=True),
-        Binding("l", "cursor_right", "Expand / Next", show=False, priority=True),
+        Binding("k,up", "cursor_up", "Cursor Up", show=False, priority=True),
+        Binding("j,down", "cursor_down", "Cursor Down", show=False, priority=True),
+        Binding("h,left", "collapse_node", "Collapse Node", show=False, priority=True),
+        Binding("l,right", "expand_node", "Expand Node", show=False, priority=True),
     ]
 
     CSS_PATH = "tui.css"
@@ -66,10 +66,10 @@ class LMSteerApp(App):
             context_title_widget.update(f"Details for: [bold]{module_node.name}[/bold] ([italic]{module_node.module_type}[/italic])")
             
             details = (
-                f"[bold]Full Path:[/bold] {module_node.get_full_path() or '(root)'}\\\\n"
-                f"[bold]Module Type:[/bold] {module_node.module_type}\\\\n"
-                f"[bold]Is Leaf:[/bold] {module_node.is_leaf}\\\\n"
-                f"[bold]Children Count:[/bold] {len(module_node.children)}\\\\n"
+                f"[bold]Full Path:[/bold] {module_node.get_full_path() or '(root)'}\n"
+                f"[bold]Module Type:[/bold] {module_node.module_type}\n"
+                f"[bold]Is Leaf:[/bold] {module_node.is_leaf}\n"
+                f"[bold]Children Count:[/bold] {len(module_node.children)}\n"
             )
             module_info_widget.update(details)
         else:
@@ -81,6 +81,19 @@ class LMSteerApp(App):
         # event.node can be None if the tree is empty or loses focus
         highlighted_node_data = event.node.data if event.node else None
         self._update_module_details(highlighted_node_data)
+
+
+    def action_collapse_node(self) -> None:
+        """Collapses the current tree node if it is expanded."""
+        tree = self.query_one(Tree)
+        if tree.cursor_node and tree.cursor_node.is_expanded:
+            tree.action_collapse_node()
+
+    def action_expand_node(self) -> None:
+        """Expands the current tree node if it is collapsed and has children."""
+        tree = self.query_one(Tree)
+        if tree.cursor_node and not tree.cursor_node.is_expanded and tree.cursor_node.allow_expand:
+            tree.action_expand_node()
 
 
     def action_quit(self) -> None:
