@@ -40,6 +40,10 @@ class CustomTree(Tree):
             ):
                 self.action_toggle_node()
             prevent_default = True
+        elif event.key == "enter":
+            if self.cursor_node is not None:
+                self.post_message(NodeExplicitlySelected(self.cursor_node))
+            prevent_default = True
 
         if prevent_default:
             event.stop()
@@ -268,11 +272,13 @@ class LMSteerApp(App):
         # _update_module_details is typically called by on_tree_node_highlighted.
         # NodeSelected (and thus NodeExplicitlySelected) usually follows a highlight.
 
+
         radio_set = self.query_one("#module_action_radioset", RadioSet)
         # Only focus if a module is actually selected (event.node.data exists)
         # and the radio_set is enabled (which _update_module_details should have set).
         if event.node and event.node.data and not radio_set.disabled:
-            radio_set.focus()
+
+            self.set_focus(radio_set)
         event.stop()  # Prevent any default Tree.NodeSelected behavior if not desired
 
     def action_collapse_node(self) -> None:

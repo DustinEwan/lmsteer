@@ -53,6 +53,13 @@ When you run the script:
 ## Roadmap & Future Enhancements
 
 ### Immediate Next Steps
+*   [ ] **Resolve TUI Focus Issue in `test_focus_behavior_and_indicators`:**
+    *   Currently, the test `test_focus_behavior_and_indicators` is failing. Pressing "Enter" on the `ModuleTree` is intended to transfer focus to the `RadioSet` in the `DetailPane`.
+    *   The application's internal mechanism for setting focus (`self.set_focus(radio_set)` in the `CustomTree.NodeExplicitlySelected` event handler) is not reliably updating `app.focused` to the `RadioSet` and/or ensuring the `on_focus` event handler correctly updates the `pane-focused` CSS class on the panes before test assertions are evaluated.
+    *   The `on_focus` handler itself, which manages the `pane-focused` class, appears to function correctly when focus is set programmatically from the test.
+    *   The immediate goal is to ensure that the application's internal focus logic correctly and reliably transfers focus and updates visual indicators, allowing all tests in `test_app_interaction.py` to pass.
+
+
 *   [ ] **Complete Textual TUI for Rule Management:** The initial Textual TUI (`lmsteer/tui/app.py`) allows for model loading and module tree navigation. The next critical step is to implement full rule management capabilities:
     *   Interactively define steering rules for selected modules (e.g., capture, skip, modify activations).
     *   Display a list of currently defined rules.
