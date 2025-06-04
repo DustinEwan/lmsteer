@@ -27,9 +27,9 @@ This tool is currently focused on building the **Steering Configuration** mechan
 
 ### 1. Setup
 Ensure you have the `lmsteer` project directory. This project uses `uv` as its package manager and `pyproject.toml` for dependency management. Key Python modules are organized into `lmsteer/app/` (for core logic like `model_utils.py`, `rules.py`, `config_io.py`) and `lmsteer/tui/` (for UI components like `app.py`).
-Install the necessary dependencies:
+Install the necessary dependencies from the project's root directory:
 ```bash
-uv pip sync
+uv pip install -e '.[dev]'
 ```
 
 ### 2. Running the Tool
