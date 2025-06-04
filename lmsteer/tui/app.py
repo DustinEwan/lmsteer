@@ -13,7 +13,7 @@ from textual.widgets.tree import TreeNode  # Correct: TreeNode from textual.widg
 from textual.binding import (
     Binding,
 )  # Correct: Binding from textual.binding (Forcing update)
-from textual.events import Key
+from textual.events import Key, Focus
 
 from lmsteer.app.model_utils import ModuleNode
 # from rules import Rule
@@ -58,16 +58,42 @@ class NodeExplicitlySelected(Tree.NodeSelected):
 
     pass
 
+class NavigableRadioSet(RadioSet):
+    def on_key(self, event: Key) -> None:
+        buttons = list(self.query(RadioButton))  # Get RadioButton children
+        if not buttons:  # No buttons to navigate
+            return
+
+        current_index = -1
+        for i, button in enumerate(buttons):
+            if button.value:  # RadioButton.value is True if it's selected
+                current_index = i
+                break
+
+        if event.key == "k":  # Up
+            event.stop()
+            if current_index == -1 or current_index == 0:
+                buttons[-1].value = True  # Select last
+            else:
+                buttons[current_index - 1].value = True  # Select previous
+        elif event.key == "j":  # Down
+            event.stop()
+            if current_index == -1 or current_index == len(buttons) - 1:
+                buttons[0].value = True  # Select first
+            else:
+                buttons[current_index + 1].value = True  # Select next
+        else:
+            super().on_key(event)
 
 class LMSteerApp(App):
     """A Textual app to steer language models."""
 
     BINDINGS = [
         Binding("ctrl+q", "quit", "Quit", show=True),
-        Binding("k,up", "cursor_up", "Cursor Up", show=False, priority=True),
-        Binding("j,down", "cursor_down", "Cursor Down", show=False, priority=True),
-        Binding("h,left", "collapse_node", "Collapse Node", show=False, priority=True),
-        Binding("l,right", "expand_node", "Expand Node", show=False, priority=True),
+        Binding("k,up", "cursor_up", "Cursor Up", show=False),
+        Binding("j,down", "cursor_down", "Cursor Down", show=False),
+        Binding("h,left", "collapse_node", "Collapse Node", show=False),
+        Binding("l,right", "expand_node", "Expand Node", show=False),
         Binding("escape", "focus_tree", "Focus Tree", show=False, priority=True),
     ]
 
@@ -97,7 +123,7 @@ class LMSteerApp(App):
                     "Select a module in the tree to see details or define rules.",
                     id="module_info_static",
                 )
-                yield RadioSet(
+                yield NavigableRadioSet(
                     RadioButton(
                         "Capture Activations for this module", id="radio_capture_module"
                     ),
@@ -135,10 +161,34 @@ class LMSteerApp(App):
                 self._add_nodes_to_tree(new_textual_node, child_model_node)
 
     def on_mount(self) -> None:
-        module_tree_widget = self.query_one("#module_tree", Tree)
-        self._add_nodes_to_tree(module_tree_widget.root, self.model_root)
-        module_tree_widget.focus()
+        # Store references to the widgets
+        self.module_tree_widget = self.query_one("#module_tree", CustomTree)
+        self.context_pane_widget = self.query_one("#context_pane", Vertical)
 
+        # Populate the tree
+        self._add_nodes_to_tree(self.module_tree_widget.root, self.model_root)
+
+        # Set initial focus to the tree
+        self.module_tree_widget.focus()
+
+        # Set initial focus highlighting
+        self.module_tree_widget.add_class("pane-focused")
+        self.context_pane_widget.remove_class("pane-focused")
+
+    def on_focus(self, event: Focus) -> None:
+        """Handle focus events to highlight the active pane."""
+        # Check if the focused widget is the tree itself or a descendant
+        if event.widget == self.module_tree_widget or self.module_tree_widget.is_ancestor_of(event.widget):
+            if not self.module_tree_widget.has_class("pane-focused"):
+                self.module_tree_widget.add_class("pane-focused")
+            if self.context_pane_widget.has_class("pane-focused"):
+                self.context_pane_widget.remove_class("pane-focused")
+        # Check if the focused widget is the context pane or a descendant
+        elif event.widget == self.context_pane_widget or self.context_pane_widget.is_ancestor_of(event.widget):
+            if not self.context_pane_widget.has_class("pane-focused"):
+                self.context_pane_widget.add_class("pane-focused")
+            if self.module_tree_widget.has_class("pane-focused"):
+                self.module_tree_widget.remove_class("pane-focused")
     def _update_module_details(self, module_node: ModuleNode | None) -> None:
         """Updates the context pane with details of the given module_node."""
         context_title_widget = self.query_one("#context_pane_title", Static)

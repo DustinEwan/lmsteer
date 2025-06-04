@@ -19,11 +19,20 @@ Screen {
     overflow-y: auto; /* Allow vertical scrolling for the tree */
 }
 
+#module_tree.pane-focused {
+    border-right: solid $secondary; /* Highlight border when focused */
+}
+
 #context_pane {
     width: 60%; /* Context pane takes the remaining 60% */
     height: 100%;
     padding: 1;
     overflow-y: auto;
+    background: $primary-background; /* Explicitly set default background */
+}
+
+#context_pane.pane-focused {
+    background: $primary-background-lighten-1; /* Slightly lighter background when focused */
 }
 
 .pane_title {
